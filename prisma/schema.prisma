@@ -13,6 +13,13 @@ enum UserRole {
   ADMIN
 }
 
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -25,6 +32,8 @@ model User {
   updatedAt    DateTime @updatedAt
 
   sessionsCreated Session[] @relation("SessionCreator")
+  bookings        Booking[]
+  waitlistEntries WaitlistEntry[]
 }
 
 model Session {
@@ -34,5 +43,35 @@ model Session {
   createdAt   DateTime @default(now())
   createdById String
 
-  createdBy User @relation("SessionCreator",fields: [createdById],references: [id])
+  createdBy      User            @relation("SessionCreator", fields: [createdById], references: [id])
+  bookings       Booking[]
+  waitlistEntries WaitlistEntry[]
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String
+  sessionId   String
+  status      BookingStatus @default(CONFIRMED)
+  checkInCode String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+  @@index([sessionId, createdAt])
 }
