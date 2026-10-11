@@ -1,3 +1,4 @@
+
 import { prisma } from "../../../lib/db";
 
 export async function GET() {
@@ -16,7 +17,10 @@ export async function GET() {
     console.error("Failed to fetch sessions:", error);
 
     return Response.json(
-      { success: false, message: "Unable to fetch sessions" },
+      {
+        success: false,
+        message: "Unable to fetch sessions",
+      },
       { status: 500 },
     );
   }
