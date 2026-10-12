@@ -20,6 +20,12 @@ enum BookingStatus {
   NO_SHOW
 }
 
+enum FineStatus {
+  UNPAID
+  PAID
+  WAIVED
+}
+
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -34,6 +40,8 @@ model User {
   sessionsCreated Session[] @relation("SessionCreator")
   bookings        Booking[]
   waitlistEntries WaitlistEntry[]
+  fineRecords Fine[] @relation("UserFines")
+finesWaived Fine[] @relation("FineWaiver")
 }
 
 model Session {
@@ -61,6 +69,7 @@ model Booking {
   session Session @relation(fields: [sessionId], references: [id])
 
   @@unique([userId, sessionId])
+  fine Fine?
 }
 
 model WaitlistEntry {
@@ -74,4 +83,20 @@ model WaitlistEntry {
 
   @@unique([userId, sessionId])
   @@index([sessionId, createdAt])
+}
+
+model Fine {
+  id         String     @id @default(cuid())
+  bookingId  String     @unique
+  userId     String
+  amount     Int        @default(20)
+  status     FineStatus @default(UNPAID)
+  reason     String     @default("NO_SHOW")
+  waivedById String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  user     User    @relation("UserFines", fields: [userId], references: [id])
+  waivedBy User?   @relation("FineWaiver", fields: [waivedById], references: [id])
 }
