@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
+import Link from "next/link";
+
 type Session = { id: string; startsAt: string; capacity: number };
 type Booking = {
   id: string;
@@ -38,8 +40,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    void loadSessions();
-  }, [loadSessions]);
+  let cancelled = false;
+
+  async function fetchSessions() {
+    try {
+      const response = await fetch("/api/sessions", {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!cancelled && result.success) {
+        setSessions(result.data);
+      }
+    } catch (error) {
+      if (!cancelled) {
+        console.error("Failed to load sessions:", error);
+      }
+    }
+  }
+
+  void fetchSessions();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,27 +132,54 @@ export default function Home() {
     }
   };
 
-  const createSession = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      const response = await fetch("/api/admin/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startsAt: new Date(adminStartsAt).toISOString() }),
-      });
-      const result = await response.json();
-      setNotice(result.message || (result.success ? "Session created." : "Unable to create session."));
-      if (response.ok) {
-        setAdminStartsAt("");
-        await loadSessions();
-      }
-    } catch {
-      setNotice("Unable to create session. Check the date and time.");
-    } finally {
-      setBusy(false);
+ 
+const createSession = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  setBusy(true);
+  setNotice("");
+
+  try {
+    if (!adminStartsAt) {
+      throw new Error("Please select a session date and time.");
     }
-  };
+
+    // Interpret datetime-local input explicitly as IST (+05:30).
+    const startsAt = new Date(`${adminStartsAt}:00+05:30`);
+
+    if (Number.isNaN(startsAt.getTime())) {
+      throw new Error("Invalid session date and time.");
+    }
+
+   const response = await fetch("/api/admin/sessions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    startsAt: adminStartsAt,
+  }),
+});
+
+    const result = await response.json();
+
+    setNotice(
+      result.message ||
+        (result.success ? "Session created." : "Unable to create session.")
+    );
+
+    if (response.ok) {
+      setAdminStartsAt("");
+      await loadSessions();
+    }
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Unable to create session. Check the date and time."
+    );
+  } finally {
+    setBusy(false);
+  }
+};
+
 
   const dateLabel = (date: string) =>
     new Intl.DateTimeFormat("en-IN", {
@@ -140,7 +192,9 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-white/10 bg-slate-950/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-          <a href="/" className="text-xl font-black tracking-tight">FIT<span className="text-emerald-400">BOOK</span></a>
+          <Link href="/" className="text-xl font-black tracking-tight">
+  FIT<span className="text-emerald-400">BOOK</span>
+</Link>
           <div className="flex items-center gap-3 text-sm">
             {account ? <><span className="hidden text-slate-300 sm:inline">{account.username} · {account.role}</span><button onClick={logout} className="rounded-xl border border-white/15 px-4 py-2 hover:bg-white/10">Log out</button></> : <span className="text-slate-400">Member fitness portal</span>}
           </div>

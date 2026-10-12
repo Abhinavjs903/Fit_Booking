@@ -46,14 +46,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const startsAt = new Date(body.startsAt);
+    
 
-    if (!Number.isFinite(startsAt.getTime())) {
-      return Response.json(
-        { success: false, message: "A valid startsAt date is required" },
-        { status: 400 },
-      );
-    }
+// Treat the datetime-local value explicitly as India Standard Time.
+const rawStartsAt = body.startsAt;
+
+if (
+  typeof rawStartsAt !== "string" ||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(rawStartsAt)
+) {
+  return Response.json(
+    { success: false, message: "Invalid session date and time" },
+    { status: 400 },
+  );
+}
+
+const startsAt = new Date(`${rawStartsAt}:00+05:30`);
+
+if (!Number.isFinite(startsAt.getTime())) {
+  return Response.json(
+    { success: false, message: "Invalid session date and time" },
+    { status: 400 },
+  );
+}
+console.log("RAW startsAt:", body.startsAt);
+console.log("PARSED startsAt:", startsAt.toISOString());
+console.log("IST parts:", getIndiaTime(startsAt));
+console.log("UTC milliseconds:", startsAt.getUTCMilliseconds());
+    
 
     const indiaTime = getIndiaTime(startsAt);
     const hour = Number(indiaTime.hour);
