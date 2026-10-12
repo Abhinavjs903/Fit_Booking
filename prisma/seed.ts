@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/db";
@@ -8,9 +7,7 @@ async function main() {
   const memberPassword = process.env.SEED_MEMBER_PASSWORD;
 
   if (!adminPassword || !memberPassword) {
-    throw new Error(
-      "SEED_ADMIN_PASSWORD and SEED_MEMBER_PASSWORD are required",
-    );
+    throw new Error("SEED_ADMIN_PASSWORD and SEED_MEMBER_PASSWORD are required");
   }
 
   const adminHash = await bcrypt.hash(adminPassword, 12);
@@ -19,10 +16,10 @@ async function main() {
   await prisma.user.upsert({
     where: { username: "admin" },
     update: {
-  passwordHash: adminHash,
-  role: "ADMIN",
-  isActive: true,
-},
+      passwordHash: adminHash,
+      role: "ADMIN",
+      isActive: true,
+    },
     create: {
       username: "admin",
       email: "admin@example.test",
@@ -38,19 +35,23 @@ async function main() {
 
     await prisma.user.upsert({
       where: { username: `member${number}` },
-      update: {},
+      update: {
+        passwordHash: memberHash,
+        role: "MEMBER",
+        isActive: true,
+      },
       create: {
         username: `member${number}`,
         email: `member${number}@example.test`,
         passwordHash: memberHash,
         memberCode: `GYM-${String(i).padStart(4, "0")}`,
         role: "MEMBER",
-        isActive: false,
+        isActive: true,
       },
     });
   }
 
-  console.log("Seed complete: 1 admin and 50 members.");
+  console.log("Seed complete: 1 active admin and 50 active demo members.");
 }
 
 main()
