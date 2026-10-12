@@ -42,6 +42,7 @@ model User {
   waitlistEntries WaitlistEntry[]
   fineRecords Fine[] @relation("UserFines")
 finesWaived Fine[] @relation("FineWaiver")
+otpChallenges OtpChallenge[]
 }
 
 model Session {
@@ -99,4 +100,18 @@ model Fine {
   booking  Booking @relation(fields: [bookingId], references: [id])
   user     User    @relation("UserFines", fields: [userId], references: [id])
   waivedBy User?   @relation("FineWaiver", fields: [waivedById], references: [id])
+}
+
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
